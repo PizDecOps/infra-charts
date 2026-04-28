@@ -1,0 +1,9 @@
+all:
+  children:
+    initial-host:
+      hosts:
+        localhost:
+          sops_age_key:
+          kube_token:
+          stage_values_file: values.prod.yaml
+          kube_apiserver_host:

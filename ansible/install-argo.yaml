@@ -1,0 +1,128 @@
+- hosts: initial-host
+  run_once: true
+  tasks:
+    - name: Check if helm already installed
+      stat:
+        path: /bin/helm
+      register: helm_stat
+
+    - block:
+        - name: Create helm temp directory
+          file:
+            path: /tmp/helm
+            state: directory
+            mode: 0655
+
+        - name: Unarchive Helm
+          become: yes
+          unarchive:
+            src: "https://get.helm.sh/helm-v4.1.4-linux-amd64.tar.gz"
+            dest: /tmp/helm
+            remote_src: yes
+
+        - name: Move Helm binary
+          become: yes
+          command: mv /tmp/helm/linux-amd64/helm /bin/helm
+          changed_when: true
+
+      when: not helm_stat.stat.exists
+
+    - block:
+        - name: Install dependencies
+          ansible.builtin.command:
+            argv:
+              - helm
+              - dep
+              - update
+              - "{{ playbook_dir }}/../infra-charts/argo-cd/"
+
+        - name: Ensure argocd namespace and SOPS secret exist
+          kubernetes.core.k8s:
+            state: present
+            host: "{{ kube_apiserver_host }}"
+            api_key: "{{ kube_token }}"
+            validate_certs: false
+            definition:
+              - apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: argocd
+
+              - apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: argocd-sops-age
+                  namespace: argocd
+                type: Opaque
+                data:
+                  age.key: "{{ sops_age_key | b64encode }}"
+          tags:
+            - sops
+
+        - name: Install chart argocd
+          ansible.builtin.command:
+            argv:
+              - helm
+              - upgrade
+              - --install
+              - argocd
+              - -n
+              - argocd
+              - "{{ playbook_dir }}/../infra-charts/argo-cd/"
+              - --create-namespace
+              - -f
+              - "{{ playbook_dir }}/../infra-charts/argo-cd/values.yaml"
+              - -f
+              - "{{ playbook_dir }}/../infra-charts/argo-cd/values.common.yaml"
+              - -f
+              - "{{ playbook_dir }}/../infra-charts/argo-cd/{{ stage_values_file }}"
+              - --kube-apiserver-host={{ kube_apiserver_host }}
+              - --kube-token={{ kube_token }}
+              - --kube-insecure-skip-tls-verify
+              - --wait
+              - --timeout
+              - 10m
+          tags:
+            - argocd
+
+        - name: Wait for ArgoCD CRDs to be established
+          no_log: false
+          kubernetes.core.k8s_info:
+            api_key: "{{ kube_token }}"
+            host: "{{ kube_apiserver_host }}"
+            validate_certs: false
+            api_version: apiextensions.k8s.io/v1
+            kind: CustomResourceDefinition
+            name: "{{ item }}"
+            wait: true
+            wait_condition:
+              type: Established
+              status: "True"
+            wait_sleep: 5
+            wait_timeout: 300
+          loop:
+            - applications.argoproj.io
+            - applicationsets.argoproj.io
+
+        - name: Install chart argocd-apps
+          ansible.builtin.command:
+            argv:
+              - helm
+              - upgrade
+              - --install
+              - argo-cd-apps
+              - -n
+              - argocd
+              - "{{ playbook_dir }}/../infra-charts/argo-cd-apps/"
+              - --create-namespace
+              - -f
+              - "{{ playbook_dir }}/../infra-charts/argo-cd-apps/values.yaml"
+              - -f
+              - "{{ playbook_dir }}/../infra-charts/argo-cd-apps/values.common.yaml"
+              - -f
+              - "{{ playbook_dir }}/../infra-charts/argo-cd-apps/{{ stage_values_file }}"
+              - --kube-apiserver-host={{ kube_apiserver_host }}
+              - --kube-token={{ kube_token }}
+              - --kube-insecure-skip-tls-verify
+          tags:
+            - apps
