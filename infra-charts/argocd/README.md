@@ -4,7 +4,7 @@ Wrapper Helm chart для установки Argo CD
 
 ## Состав
 
-- `Chart.yaml` - dependency на upstream chart `argo-cd` (версия `9.5.6`)
+- `Chart.yaml` - dependency на upstream chart `argo-cd` (версия `9.5.7`)
 - `values.yaml` - базовая конфигурация Argo CD
 - `values.common.yaml` - общие настройки
 - `values.test.yaml`, `values.prod.yaml` - env-override
