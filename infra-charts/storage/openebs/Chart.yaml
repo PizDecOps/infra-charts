@@ -3,3 +3,8 @@ name: openebs
 
 type: application
 version: 4.5.0
+
+dependencies:
+  - name: topolvm
+    version: 4.5.0-develop
+    repository: https://openebs.github.io/openebs
