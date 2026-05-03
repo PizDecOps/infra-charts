@@ -1,8 +1,0 @@
-argo-cd:
-  configs:
-    secret:
-      argocdServerAdminPassword: "$2a$10$79yaoOg9dL5MO8pn8hGqtO4LnQjIqokg3yMJn/VqlNie9EQFKUBDC"
-
-cmp:
-  helmSops:
-    envValuesFile: values.test.yaml
