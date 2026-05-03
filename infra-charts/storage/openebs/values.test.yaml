@@ -1,0 +1,43 @@
+openebs:
+  openebs-crds:
+    csi:
+      volumeSnapshots:
+        enabled: false
+        keep: false
+
+  zfs-localpv:
+    crds:
+      zfsLocalPv:
+        enabled: false
+
+  lvm-localpv:
+    crds:
+      lvmLocalPv:
+        enabled: false
+
+  mayastor:
+    enabled: false
+
+  engines:
+    local:
+      lvm:
+        enabled: false
+      zfs:
+        enabled: false
+    replicated:
+      mayastor:
+        enabled: false
+
+  loki:
+    localpvScConfig:
+      name: "openebs-loki-test"
+      basePath: "/var/openebs-test/loki"
+    singleBinary:
+      replicas: 1
+      drivesPerNode: 1
+      persistence:
+        enabled: false
+    minio:
+      enabled: false
+    test:
+      enabled: true
