@@ -1,0 +1,3 @@
+branch: main
+stageValuesFile: values.test.yaml
+repoURL: https://github.com/PizDecOps/infra-charts

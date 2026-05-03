@@ -1,0 +1,283 @@
+useLegacy: false
+
+image:
+  repository: ghcr.io/topolvm/topolvm-with-sidecar
+  tag:
+  pullPolicy:
+  pullSecrets: []
+
+  csi:
+    nodeDriverRegistrar:
+    csiProvisioner:
+    csiResizer:
+    csiSnapshotter:
+    livenessProbe:
+scheduler:
+  enabled: false
+  args: []
+  type: daemonset
+  deployment:
+    replicaCount: 2
+  service:
+    type: LoadBalancer
+    clusterIP:
+    nodePort:
+  updateStrategy: {}
+  terminationGracePeriodSeconds:
+  minReadySeconds:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+
+  podDisruptionBudget:
+    enabled: true
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
+  nodeSelector: {}
+  priorityClassName: system-cluster-critical
+  schedulerOptions: {}
+  additionalContainers: []
+
+  profiling:
+    bindAddress: ""
+
+  options:
+    listen:
+      host: localhost
+      port: 9251
+  podLabels: {}
+  labels: {}
+lvmd:
+  managed: true
+  socketName: /run/topolvm/lvmd.sock
+  deviceClasses:
+    - name: ssd
+      volume-group: myvg1
+      default: true
+      spare-gb: 10
+  lvcreateOptionClasses: []
+  additionalLVMDYamlContent: {}
+  args: []
+  securityContext:
+    privileged: true
+  priorityClassName:
+  tolerations: []
+  nodeSelector: {}
+  affinity: {}
+  volumes: []
+  volumeMounts: []
+  additionalVolumes: []
+  env: []
+  additionalConfigs: []
+  updateStrategy: {}
+  podLabels: {}
+  labels: {}
+  initContainers: []
+  additionalContainers: []
+
+  profiling:
+    bindAddress: ""
+
+  metrics:
+    enabled: true
+    annotations:
+      prometheus.io/port: metrics
+
+  prometheus:
+    podMonitor:
+      enabled: false
+      additionalLabels: {}
+      namespace: ""
+      interval: ""
+      scrapeTimeout: ""
+      relabelings: []
+      metricRelabelings: []
+node:
+  lvmdEmbedded: false
+  lvmdSocket: /run/topolvm/lvmd.sock
+  kubeletWorkDirectory: /var/lib/kubelet
+  args: []
+  podSecurityContext: {}
+  securityContext:
+    privileged: true
+
+  metrics:
+    enabled: true
+    annotations:
+      prometheus.io/port: metrics
+
+  prometheus:
+    podMonitor:
+      enabled: false
+      additionalLabels: {}
+      namespace: ""
+      interval: ""
+      scrapeTimeout: ""
+      relabelings: []
+      metricRelabelings: []
+  priorityClassName:
+  tolerations: []
+  nodeSelector: {}
+  affinity: {}
+  volumes: []
+  additionalVolumes: []
+
+  volumeMounts:
+    topolvmNode: []
+  updateStrategy: {}
+  podLabels: {}
+  labels: {}
+
+  profiling:
+    bindAddress: ""
+  initContainers: []
+  additionalContainers: []
+controller:
+  replicaCount: 2
+  args: []
+
+  storageCapacityTracking:
+    enabled: true
+
+  securityContext:
+    enabled: true
+
+  nodeFinalize:
+    skipped: false
+
+  leaderElection:
+    enabled: true
+
+  prometheus:
+    podMonitor:
+      enabled: false
+      additionalLabels: {}
+      namespace: ""
+      interval: ""
+      scrapeTimeout: ""
+      relabelings: []
+      metricRelabelings: []
+  terminationGracePeriodSeconds:
+  priorityClassName:
+  updateStrategy: {}
+  minReadySeconds:
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - controller
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - {{ include "topolvm.name" . }}
+          topologyKey: kubernetes.io/hostname
+  tolerations: []
+  nodeSelector: {}
+  volumes:
+    - name: socket-dir
+      emptyDir: {}
+
+  podDisruptionBudget:
+    enabled: true
+  podLabels: {}
+  labels: {}
+
+  profiling:
+    bindAddress: ""
+  initContainers: []
+  additionalContainers: []
+
+resources:
+  topolvm_node: {}
+  csi_registrar: {}
+  liveness_probe: {}
+  topolvm_controller: {}
+  csi_provisioner: {}
+  csi_resizer: {}
+  csi_snapshotter: {}
+  lvmd: {}
+  topolvm_scheduler: {}
+
+env:
+  topolvm_node: []
+  csi_registrar: []
+  liveness_probe: []
+  topolvm_controller: []
+  csi_provisioner: []
+  csi_resizer: []
+  csi_snapshotter: []
+  topolvm_scheduler: []
+
+livenessProbe:
+  topolvm_node:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  csi_registrar:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  topolvm_controller:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  lvmd:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+  topolvm_scheduler:
+    failureThreshold:
+    initialDelaySeconds: 10
+    timeoutSeconds: 3
+    periodSeconds: 60
+storageClasses:
+  - name: topolvm-provisioner
+    storageClass:
+      fsType: xfs
+      reclaimPolicy:
+      annotations: {}
+      isDefaultClass: false
+      volumeBindingMode: WaitForFirstConsumer
+      allowVolumeExpansion: true
+      additionalParameters: {}
+      mountOptions: []
+
+webhook:
+  caBundle:
+  existingCertManagerIssuer: {}
+  certManager: true
+  secretName: ""
+  annotations: {}
+  podMutatingWebhook:
+    enabled: false
+    objectSelector: {}
+    ignoreNamespaces:
+      - kube-system
+      - topolvm-system
+securityContext:
+  runAsUser: 10000
+  runAsGroup: 10000
+
+cert-manager:
+  enabled: false
+
+priorityClass:
+  enabled: true
+  name: topolvm
+  value: 1000000
+
+snapshot:
+  enabled: true

@@ -1,0 +1,58 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: infra-apps-{{ .Values.stageValuesFile | replace ".yaml" "" }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  generators:
+    - git:
+        repoURL: {{ .Values.repoURL }}
+        revision: {{ .Values.branch }}
+        directories:
+          - path: core/*
+          - path: storage/*
+          - path: data/*
+          - path: observability/*
+          - path: platform/*
+          - path: security/*
+          - path: network/*
+          exclude:
+            - path: network/istio
+            - path: core/argocd
+  template:
+    metadata:
+      name: '{{path.basename}}-{{ .Values.stageValuesFile | replace ".yaml" "" }}'
+      labels:
+        app.kubernetes.io/managed-by: argocd
+        env: {{ .Values.stageValuesFile | replace ".yaml" "" }}
+        type: infra
+    spec:
+      project: default
+      source:
+        repoURL: {{ .Values.repoURL }}
+        targetRevision: {{ .Values.branch }}
+        path: '{{path}}'
+        helm:
+          valueFiles:
+            - values.yaml
+            - values.common.yaml
+            - secrets://{{ .Values.stageValuesFile }}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ path.basename }}'
+      syncPolicy:
+        automated:
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - ApplyOutOfSyncOnly=true
+          - PrunePropagationPolicy=foreground
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

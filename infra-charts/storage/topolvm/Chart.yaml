@@ -1,0 +1,10 @@
+apiVersion: v2
+name: topolvm
+
+type: application
+version: 16.0.1
+
+dependencies:
+  - name: topolvm
+    version: 16.0.1
+    repository: https://topolvm.github.io/topolvm

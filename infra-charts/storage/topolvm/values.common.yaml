@@ -1,0 +1,149 @@
+topolvm:
+  scheduler:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: node-role.kubernetes.io/app
+                  operator: Exists
+    tolerations: []
+
+  lvmd:
+    deviceClasses:
+      - name: data
+        volume-group: vg01
+        spare-gb: 5
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: node-role.kubernetes.io/topolvm
+                  operator: Exists
+                # исключаем control-plane
+                - key: node-role.kubernetes.io/control-plane
+                  operator: DoesNotExist
+                # исключаем старый master label (если есть)
+                - key: node-role.kubernetes.io/internal-ingress-gateway
+                  operator: DoesNotExist
+
+  node:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: DoesNotExist
+                - key: node-role.kubernetes.io/internal-ingress-gateway
+                  operator: DoesNotExist
+
+  controller:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: node-role.kubernetes.io/app
+                  operator: Exists
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [controller]
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: ["topolvm"]
+            topologyKey: kubernetes.io/hostname
+
+  resources:
+    topolvm_node:
+      requests:
+        memory: 100Mi
+        cpu: 150m
+        ephemeral-storage: 150Mi
+      limits:
+        memory: 500Mi
+        cpu: 150m
+        ephemeral-storage: 500Mi
+    topolvm_controller:
+      requests:
+        memory: 50Mi
+        cpu: 50m
+        ephemeral-storage: 150Mi
+      limits:
+        memory: 200Mi
+        cpu: 200m
+        ephemeral-storage: 500Mi
+    lvmd:
+      requests:
+        memory: 100Mi
+        cpu: 100m
+      limits:
+        memory: 500Mi
+        cpu: 500m
+    topolvm_scheduler:
+      requests:
+        memory: 50Mi
+        cpu: 50m
+      limits:
+        memory: 200Mi
+        cpu: 200m
+    csi_registrar:
+      requests:
+        memory: 10Mi
+        cpu: 25m
+      limits:
+        memory: 200Mi
+        cpu: 200m
+    liveness_probe:
+      requests:
+        memory: 10Mi
+        cpu: 25m
+      limits:
+        memory: 200Mi
+        cpu: 200m
+    csi_provisioner:
+      requests:
+        memory: 50Mi
+        cpu: 50m
+        ephemeral-storage: 150Mi
+      limits:
+        memory: 200Mi
+        cpu: 200m
+        ephemeral-storage: 500Mi
+    csi_resizer:
+      requests:
+        memory: 50Mi
+        cpu: 50m
+        ephemeral-storage: 150Mi
+      limits:
+        memory: 200Mi
+        cpu: 200m
+        ephemeral-storage: 500Mi
+    csi_snapshotter:
+      requests:
+        memory: 50Mi
+        cpu: 50m
+      limits:
+        memory: 200Mi
+        cpu: 200m
+
+  storageClasses:
+    - name: topolvm
+      storageClass:
+        fsType: xfs
+        reclaimPolicy: Delete
+        volumeBindingMode: WaitForFirstConsumer
+        allowVolumeExpansion: true
+        additionalParameters:
+          topolvm.io/device-class: "data"
+
+  webhook:
+    caBundle: ""
+
+  snapshot:
+    enabled: false
