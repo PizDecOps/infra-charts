@@ -68,14 +68,14 @@
               - argocd
               - -n
               - argocd
-              - "{{ playbook_dir }}/../infra-charts/argo-cd/"
+              - "{{ playbook_dir }}/../infra-charts/core/argocd/"
               - --create-namespace
               - -f
-              - "{{ playbook_dir }}/../infra-charts/argo-cd/values.yaml"
+              - "{{ playbook_dir }}/../infra-charts/core/argocd/values.yaml"
               - -f
-              - "{{ playbook_dir }}/../infra-charts/argo-cd/values.common.yaml"
+              - "{{ playbook_dir }}/../infra-charts/core/argocd/values.common.yaml"
               - -f
-              - "{{ playbook_dir }}/../infra-charts/argo-cd/{{ stage_values_file }}"
+              - "{{ playbook_dir }}/../infra-charts/core/argocd/{{ stage_values_file }}"
               - --kube-apiserver-host={{ kube_apiserver_host }}
               - --kube-token={{ kube_token }}
               - --kube-insecure-skip-tls-verify
